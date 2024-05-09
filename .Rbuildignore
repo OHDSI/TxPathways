@@ -1,0 +1,5 @@
+^TxPathways\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+extras/
+errorReportSql.txt
