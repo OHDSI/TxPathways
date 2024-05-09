@@ -13,14 +13,12 @@ More to come.....
 
 ## Installation
 
-To install `TxPathways`, follow these steps:
+Users can install the current development version of TxPathways from [GitHub](https://github.com/) with:
 
-1) clone the repository.
-2) Open the `TxPathways.RProj` file in the repository
-3) Navigate to the build tab in RStudio and select Install
-4) Exit out of the `TxPathways.RProj` session
-5) **Recommended** create a new `RProj` to test the package.
-
+``` r
+# install.packages("devtools")
+devtools::install_github("ohdsi/TxPathways")
+```
 
 ## Example
 
