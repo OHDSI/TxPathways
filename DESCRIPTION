@@ -1,0 +1,25 @@
+Package: TxPathways
+Title: Module to run treatment patterns
+Version: 0.0.4
+Authors@R: c(
+    person("Martin", "Lavallee", , "martin.lavallee@boehringer-ingelheim.com", role = c("aut", "cre")),
+    person("Katy", "Sadowski", , "katy.sadowski@boehringer-ingelheim.com", role = c("aut"))
+  )
+Description: Build treatment history using target and event cohorts. Then run analytics off this construction
+License: Apache License (>= 2)
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.3
+Imports: 
+    cli,
+    crayon,
+    fs,
+    purrr,
+    rlang,
+    SqlRender,
+    DatabaseConnector,
+    dplyr,
+    glue,
+    readr,
+    tibble
+Additional_repositories: https://OHDSI.github.io/drat
