@@ -2,17 +2,19 @@
 % Please edit documentation in R/howLong.R
 \name{howLongDiscontinuation}
 \alias{howLongDiscontinuation}
-\title{How for patients until discontinuation}
+\title{How long for patients until discontinuation}
 \usage{
-howLongDiscontinuation(th, threshold = 60, days = 365)
+howLongDiscontinuation(th, days = 365)
 }
 \arguments{
 \item{th}{the treatment history table}
+
+\item{days}{the maximum number of days before stopping to consider an event a discontinuation}
 }
 \value{
 a tibble summarizing the time to discontinuation using min, p25
 p50, p75 and max values
 }
 \description{
-How for patients until discontinuation
+How long for patients until discontinuation
 }

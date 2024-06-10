@@ -146,7 +146,9 @@ howLongCombination <- function(th) {
 #' p50, p75 and max values
 #' @export
 howLongOnlyTx <- function(th) {
-
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for this analysis as end dates are collapsed.")
+  }
   t1 <- th |>
     dplyr::filter(
       subject_id %in% single_era(th)
@@ -200,7 +202,9 @@ howLongNextTx <- function(th) {
 #' p50, p75 and max values
 #' @export
 howLongTxLine <- function(th, line = 1) {
-
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for this analysis as end dates are collapsed.")
+  }
   t1 <- th |>
     dplyr::filter(
       event_seq == !!line
@@ -239,7 +243,9 @@ howLongTxLine <- function(th, line = 1) {
 #' p50, p75 and max values
 #' @export
 howLongAreDrugEras <- function(th) {
-
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for this analysis as end dates are collapsed.")
+  }
   t1 <- th |>
     dplyr::mutate(
       duration = event_end - event_start,
@@ -268,13 +274,16 @@ howLongAreDrugEras <- function(th) {
   return(tb)
 }
 
-#' How for patients until discontinuation
+#' How long for patients until discontinuation
 #' @param th the treatment history table
+#' @param days the maximum number of days before stopping to consider an event a discontinuation
 #' @return a tibble summarizing the time to discontinuation using min, p25
 #' p50, p75 and max values
 #' @export
-howLongDiscontinuation <- function(th, threshold = 60, days = 365) {
-
+howLongDiscontinuation <- function(th, days = 365) {
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for this analysis as end dates are collapsed.")
+  }
   #create denominator
   nn <- get_denominator(th)
 

@@ -4,10 +4,12 @@
 \alias{howManyDiscontinue}
 \title{How many patients have discontinuation}
 \usage{
-howManyDiscontinue(th, threshold = 60, days = 365)
+howManyDiscontinue(th, days = 365)
 }
 \arguments{
 \item{th}{the treatment history table}
+
+\item{days}{the maximum number of days before stopping to consider an event a discontinuation}
 }
 \value{
 a tibble summarizing the number of persons and percentage with a discontinuation at 365d

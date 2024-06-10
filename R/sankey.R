@@ -1,5 +1,5 @@
 
-
+#' @import data.table grafify networkD3 tidyr tidyselect
 
 prep_sankey <- function(th, maxPathLength = 2) {
 

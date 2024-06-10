@@ -132,10 +132,13 @@ howManyMultiTx <- function(th) {
 
 #' How many patients interrupt treatment
 #' @param th the treatment history table
+#' @param breaks interruption breaks
 #' @return a tibble summarizing the number of persons and percentage with a treatment sequence and event order by interruption
 #' @export
 howManyInterruptTx <- function(th, breaks = c(30, 60, 9999)) {
-
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for this analysis as end dates are collapsed.")
+  }
   #create denominator
   nn <- get_denominator(th)
 
@@ -198,7 +201,7 @@ howManyInterruptTx <- function(th, breaks = c(30, 60, 9999)) {
 #' @param th the treatment history table
 #' @return a tibble summarizing the number of persons and percentage with a treatment combinations
 #' @export
-howManyComboTx <- function(tx) {
+howManyComboTx <- function(th) {
 
   #create denominator
   nn <- get_denominator(th)
@@ -228,10 +231,13 @@ howManyComboTx <- function(tx) {
 
 #' How many patients have discontinuation
 #' @param th the treatment history table
+#' @param days the maximum number of days before stopping to consider an event a discontinuation
 #' @return a tibble summarizing the number of persons and percentage with a discontinuation at 365d
 #' @export
-howManyDiscontinue <- function(th, threshold = 60, days = 365) {
-
+howManyDiscontinue <- function(th, days = 365) {
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for this analysis as end dates are collapsed.")
+  }
   #create denominator
   nn <- get_denominator(th)
 

@@ -169,6 +169,7 @@ howManyHaveComboTx <- function(th) {
   return(tb)
 }
 
+#' @import tidyr tidyselect
 
 howManySwitchedTxFromAtoB <- function(th, depth = 2) {
 
@@ -211,9 +212,12 @@ howManySwitchedTxFromAtoB <- function(th, depth = 2) {
   return(tb)
 }
 
+#' @import stringr
 
 howManyHadTxInterruption <- function(th, seqGap = '1-2', interruption = '30-60') {
-
+  if (th$query_method[1] == 'atlas') {
+    warn("End dates in output may not be accurate as ATLAS Pathways method may collapse end dates as a side effect of its collapse logic.")
+  }
   # Deal with string split
 
   seqGapA <- stringr::str_split_1(seqGap, pattern = '-')[1] |> as.integer()
@@ -286,7 +290,9 @@ howManyHadTxInterruption <- function(th, seqGap = '1-2', interruption = '30-60')
 
 
 howManyStoppedTxBefore <- function(th, days = 365, event_seq = 1) {
-
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for this analysis as end dates are collapsed.")
+  }
   # get number of unique persons
   #TODO Check this is the correct denominator
   nn <- th |>

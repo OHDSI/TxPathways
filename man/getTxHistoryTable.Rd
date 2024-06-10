@@ -22,6 +22,8 @@ getTxHistoryTable(
 
 \item{tableName}{the name of the table to save the treatment history table}
 
+\item{workDatabaseSchema}{the database schema where results and cohorts can read and written}
+
 \item{dropTable}{toggle to drop table, defaults to true}
 }
 \value{

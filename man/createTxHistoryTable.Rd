@@ -11,7 +11,8 @@ createTxHistoryTable(
   targetCohortId,
   eventCohortIds,
   gapDays = 32,
-  tableName
+  tableName,
+  queryMethod = "default"
 )
 }
 \arguments{
@@ -28,6 +29,8 @@ createTxHistoryTable(
 \item{gapDays}{the gap between eras to collapse on, defaults to 32}
 
 \item{tableName}{the name of the table to save the treatment history table}
+
+\item{queryMethod}{the methodology used to generate treatment history table. current options are 'default' (method used in ATLAS Pathways, without collapse rules for different tx cohorts) or 'atlas' (original ATLAS method)}
 }
 \description{
 Make the treatment history table as a temp in the database

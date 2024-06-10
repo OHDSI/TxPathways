@@ -7,7 +7,8 @@
 #' @param eventCohortIds the ids of the event cohort in the cohort table
 #' @param gapDays the gap between eras to collapse on, defaults to 32
 #' @param tableName the name of the table to save the treatment history table
-#' @export
+#' @param queryMethod the methodology used to generate treatment history table. current options are 'default' (method used in ATLAS Pathways, without collapse rules for different tx cohorts) or 'atlas' (original ATLAS method)
+#' @import crayon
 createTxHistoryTable <- function(
     connection,
     workDatabaseSchema,
@@ -15,12 +16,17 @@ createTxHistoryTable <- function(
     targetCohortId,
     eventCohortIds,
     gapDays = 32,
-    tableName
+    tableName,
+    queryMethod = 'default'
 ) {
+  stopifnot(queryMethod %in% c('default', 'atlas'))
 
   # get sql file
-  sqlFile <- fs::path_package(package = "TxPathways", "sql/treatment_history.sql")
-  #sqlFile <- here::here("ideas/DrugUtilization/inst/sql/treatment_history.sql")
+  if (queryMethod == 'default') {
+    sqlFile <- fs::path_package(package = "TxPathways", "sql/treatment_history.sql")
+  } else if (queryMethod == 'atlas') {
+    sqlFile <- fs::path_package(package = "TxPathways", "sql/treatment_history_atlas.sql")
+  }
 
   tableName <- paste0(workDatabaseSchema, '.', tableName)
 
@@ -34,7 +40,8 @@ createTxHistoryTable <- function(
     target_cohort_id = targetCohortId,
     event_cohort_id = eventCohortIds,
     gap_days = gapDays,
-    trt_history_table = tableName
+    trt_history_table = tableName,
+    query_method = queryMethod
   )
 
   cli::cat_bullet(
@@ -92,6 +99,7 @@ retrieveTxHistoryTable <- function(
 #' @param targetCohortKey a tibble with the target cohort id and name to use as a merge key for formatting
 #' @param eventCohortKey a tibble with the event cohort id and name to use as a merge key for formatting
 #' @param tableName the name of the table to save the treatment history table
+#' @param workDatabaseSchema the database schema where results and cohorts can read and written
 #' @param dropTable toggle to drop table, defaults to true
 #' @return a tibble with the treatment history information
 #' @export
@@ -126,7 +134,7 @@ getTxHistoryTable <- function(
     ) |>
     dplyr::select(
       subject_id, event_seq, target_cohort_id, target_cohort_name, target_start, target_end,
-      event_cohort_id, event_cohort_name, event_start, event_end
+      event_cohort_id, event_cohort_name, event_start, event_end, query_method
     )
 
   if (dropTable) {

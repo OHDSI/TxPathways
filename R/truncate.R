@@ -29,6 +29,7 @@ truncateByEvent <- function(th, eventSeqLimit = 2) {
 #' @param dayLimit the cutoff of days considered in the treatment history table
 #' Defaults to 365 (approx 1 year)
 #' @return the treatment history table filtered by the day limit
+#' @import tidyr
 #' @export
 truncateByTime <- function(th, dayLimit = 365) {
 

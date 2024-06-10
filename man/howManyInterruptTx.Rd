@@ -8,6 +8,8 @@ howManyInterruptTx(th, breaks = c(30, 60, 9999))
 }
 \arguments{
 \item{th}{the treatment history table}
+
+\item{breaks}{interruption breaks}
 }
 \value{
 a tibble summarizing the number of persons and percentage with a treatment sequence and event order by interruption

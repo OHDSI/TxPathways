@@ -1,7 +1,11 @@
 # Helper functions -------------
+#' @import tidyr
 
 # TODO think about what is a discontinuation
 find_discontinuation <- function(th) {
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for discontinuation analysis as end dates are collapsed.")
+  }
   t1 <- th |>
     dplyr::group_by(
       subject_id
@@ -73,7 +77,9 @@ find_discontinuation <- function(th) {
 }
 
 lag_events <- function(th) {
-
+  if (th$query_method[1] == 'atlas') {
+    stop("ATLAS Pathways method is not suitable for this analysis as end dates are collapsed.")
+  }
   # get persons who only have multiple eras
   multi_era_ids <- multi_era(th)
 
