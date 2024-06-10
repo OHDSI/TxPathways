@@ -4,7 +4,7 @@
 \alias{howManyComboTx}
 \title{How many patients have combination treatments}
 \usage{
-howManyComboTx(tx)
+howManyComboTx(th)
 }
 \arguments{
 \item{th}{the treatment history table}

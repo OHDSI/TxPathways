@@ -20,9 +20,17 @@ Users can install the current development version of TxPathways from [GitHub](ht
 devtools::install_github("ohdsi/TxPathways")
 ```
 
+## Treatment History Query Methods
+
+Users can choose between 2 different methods for generating patients' treatment histories:
+
+  * **ATLAS Pathways method**: The methodology used in [ATLAS](https://atlas.ohdsi.org/)'s [Cohort Pathways](https://ohdsi.github.io/TheBookOfOhdsi/Characterization.html#cohort-pathways-in-atlas) feature.  Importantly, the `gapDays` parameter in `createTxHistoryTable` will be used to collapse any dates found within the specified number of days into the earliest date, both within and across treatment eras.  Doing so will reduce noise in the results by inferring nearby and closely overlapping eras to be part of the same combination era.  *However*, this logic may result in the collapse of era end dates and as such, this method is *not* suitable for analyses requiring accurate treatment era end dates (duration of therapy, discontinuation, etc.)
+  * **Default method**: Same as the ATLAS method, except that `gapDays` will only be used to collapse dates within a given therapy cohort and will *not* collapse end dates.  Use this method if your analysis requires accurate treatment era end dates; however, it might not be a good fit if significant use of combination therapy is expected in your study population
+
+
 ## Example
 
-This is a basic example of the availabe functionality in `TxPathways`:
+This is a basic example of the available functionality in `TxPathways`:
 
 ``` r
 library(TxPathways)

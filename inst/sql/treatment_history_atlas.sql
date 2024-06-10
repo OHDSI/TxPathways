@@ -1,8 +1,6 @@
-/*
-Step 1: Join target and event cohorts
-*/
 DROP TABLE IF EXISTS #raw_events;
 
+-- create target event cohort
 SELECT
   a.subject_id AS subject_id,
   a.cohort_definition_id AS target_id,
@@ -20,47 +18,74 @@ JOIN (
   SELECT * FROM @work_database_schema.@cohort_table
   WHERE cohort_definition_id IN (@event_cohort_id)
 ) b
-ON a.cohort_start_date <= b.cohort_start_date AND b.cohort_start_date <= a.cohort_end_date AND a.subject_id = b.subject_id
-ORDER BY subject_id
+ON (a.cohort_start_date < b.cohort_end_date OR a.cohort_start_date = b.cohort_start_date)
+  AND b.cohort_start_date <= a.cohort_end_date
+  AND a.subject_id = b.subject_id
+ORDER BY subject_id, event_start
 ;
 
 /*
-Step 2: collapse eras that are less than @gap_days
+* Find closely located dates, which need to be collapsed, based on combo_window
 */
 
 DROP TABLE IF EXISTS #collapse_events;
 
-WITH marked_dates AS(
-  SELECT
-  ROW_NUMBER() OVER (PARTITION BY subject_id ORDER BY event_start, event_end) AS ordinal,
-  subject_id, event_id, event_start, event_end,
-  CASE WHEN(DATEDIFF(day, LAG(event_end) OVER (PARTITION BY subject_id, event_id ORDER BY event_start, event_end), event_start) <= @gap_days) THEN 1 ELSE 0 END to_collapse
-  FROM #raw_events
+WITH person_dates AS (
+SELECT subject_id, event_start AS cohort_date FROM #raw_events
+UNION
+SELECT subject_id, event_end AS cohort_date FROM #raw_events
+),
+marked_dates AS (
+SELECT ROW_NUMBER() OVER (ORDER BY subject_id ASC, cohort_date ASC) ordinal,
+    subject_id,
+    cohort_date,
+    CASE WHEN (datediff(d,LAG(cohort_date) OVER (ORDER BY subject_id ASC, cohort_date ASC), cohort_date) <= @gap_days AND subject_id = LAG(subject_id) OVER (ORDER BY subject_id ASC, cohort_date ASC)) THEN 1 ELSE 0 END to_be_collapsed
+  FROM person_dates
 ),
 grouped_dates AS (
-SELECT ordinal, subject_id, event_id, event_start, event_end, to_collapse, ordinal - SUM(to_collapse) OVER ( PARTITION BY subject_id ORDER BY event_start, event_end ROWS UNBOUNDED PRECEDING) group_idx
-FROM marked_dates
+  SELECT ordinal, subject_id, cohort_date, to_be_collapsed, ordinal - SUM(to_be_collapsed) OVER ( PARTITION BY subject_id ORDER BY cohort_date ASC ROWS UNBOUNDED PRECEDING) group_idx
+  FROM marked_dates
 ),
 replacements AS (
-SELECT ordinal, subject_id, event_id, event_start, event_end, to_collapse, group_idx, FIRST_VALUE(event_start) OVER (PARTITION BY subject_id, group_idx ORDER BY ordinal ASC ROWS UNBOUNDED PRECEDING) as replacement_date
-FROM grouped_dates
-),
-update_dates AS(
-  SELECT subject_id, event_id, event_start,
-    CASE WHEN to_collapse = 1 THEN replacement_date ELSE event_start END AS new_event_start, event_end,
-    ROW_NUMBER() OVER (PARTITION BY subject_id, group_idx ORDER BY to_collapse DESC) AS d
-  FROM replacements
+  SELECT orig.subject_id, orig.cohort_date, FIRST_VALUE(cohort_date) OVER (PARTITION BY group_idx ORDER BY ordinal ASC ROWS UNBOUNDED PRECEDING) as replacement_date
+  FROM grouped_dates orig
 )
-SELECT subject_id, event_id, new_event_start AS cohort_start_date, event_end AS cohort_end_date
-  INTO #collapse_events
-  FROM update_dates
-WHERE d = 1
-;
-/* Check
-SELECT * FROM #collapse_events WHERE subject_id = 92706486
+SELECT subject_id, cohort_date, replacement_date
+INTO #date_replacements
+FROM replacements
+WHERE cohort_date <> replacement_date;
+
+
+/*
+* Collapse dates
 */
 
 DROP TABLE IF EXISTS #event_cohort_eras;
+
+SELECT
+  e.subject_id,
+  e.event_id,
+  e.cohort_start_date,
+  case
+  /*
+  The collapsed dates (or the raw event cohort dates) may have intervals where start == end, so these should be expanded to cover a minimum of 1 day
+  */
+    when e.cohort_start_date = e.cohort_end_date then CAST(dateadd(d,1,e.cohort_end_date) AS DATETIME) /* cast is required for BigQuery */
+    else e.cohort_end_date
+  end cohort_end_date
+INTO #collapse_events
+FROM (
+  SELECT
+    event.event_id,
+    event.subject_id,
+    COALESCE(start_dr.replacement_date, event.event_start) cohort_start_date,
+    COALESCE(end_dr.replacement_date, event.event_end) cohort_end_date
+  FROM #raw_events event
+  LEFT JOIN #date_replacements start_dr ON start_dr.subject_id = event.subject_id AND start_dr.cohort_date = event.event_start
+  LEFT JOIN #date_replacements end_dr ON end_dr.subject_id = event.subject_id AND end_dr.cohort_date = event.event_end
+) e
+;
+
 
 -- we need to era-fy the collapsed dates because collapsing leads to overlapping.
 
@@ -111,10 +136,6 @@ select SUBJECT_ID, EVENT_ID, COHORT_START_DATE, COHORT_END_DATE
 INTO #event_cohort_eras
 from cteFinalEras;
 
-/* Check
-SELECT * FROM #event_cohort_eras WHERE subject_id = 92706486
-*/
-
 /*
 Split partially overlapping events into a set of events which either do not overlap or fully overlap (for later GROUP BY start_date, end_date)
 
@@ -135,6 +156,7 @@ into
 */
 
 DROP TABLE IF EXISTS #combo_events;
+
 
 WITH
 cohort_dates AS (
@@ -161,6 +183,7 @@ SELECT cast(SUM(e.event_id) as bigint) as combo_id,  subject_id , cohort_start_d
 into #combo_events
 FROM events e
 GROUP BY subject_id, cohort_start_date, cohort_end_date;
+
 
 /* Join back to target table and order */
 DROP TABLE IF EXISTS @trt_history_table;
@@ -194,6 +217,10 @@ DROP TABLE #collapse_events;
 
 TRUNCATE TABLE #event_cohort_eras;
 DROP TABLE #event_cohort_eras;
+
+
+TRUNCATE TABLE #date_replacements;
+DROP TABLE #date_replacements;
 
 TRUNCATE TABLE #raw_events;
 DROP TABLE #raw_events;
