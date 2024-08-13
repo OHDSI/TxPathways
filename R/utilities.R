@@ -75,3 +75,45 @@ format_event_combos <- function(eventCohortKey) {
   )
   return(key)
 }
+
+
+stepMask <- function(ids) {
+  rr <- sum(2 ^ (ids))
+  return(rr)
+}
+
+event_combo_ids <- function(eventCohortKey) {
+
+  #get ids and names
+  eventIds <- eventCohortKey$event_cohort_id
+  eventNames <- eventCohortKey$event_cohort_name
+
+  # get cmbIds
+  cmbIds <- purrr::map(
+    seq_along(eventIds),
+    ~combn(eventIds, .x, FUN = list)
+  ) |>
+    purrr::flatten()
+  # find bitW
+  seqId <- purrr::map_int(cmbIds, ~stepMask(.x))
+  cmbIds_txt <- cmbIds |>
+    purrr::map_chr(~paste(.x, collapse = "+"))
+
+
+  cmbNms <- purrr::map(
+    seq_along(eventNames),
+    ~combn(eventNames, .x, FUN = list)
+  ) |>
+    purrr::flatten() |>
+    purrr::map_chr(~paste(.x, collapse = "+"))
+
+
+  eventComboKey <- tibble::tibble(
+    'mask' = seqId,
+    'combo_id' = cmbIds_txt,
+    'combo_name' = cmbNms
+  )
+
+  return(eventComboKey)
+
+}

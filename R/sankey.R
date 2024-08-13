@@ -7,9 +7,9 @@ prep_sankey <- function(th, maxPathLength = 2) {
     dplyr::filter(event_seq <= maxPathLength) |>
     tidyr::pivot_wider(id_cols = subject_id,
                        names_from = event_seq,
-                       names_prefix = "event_cohort_name",
-                       values_from = event_cohort_name) |>
-    dplyr::count(dplyr::across(tidyselect::starts_with("event_cohort_name"))) |>
+                       names_prefix = "combo_name",
+                       values_from = combo_name) |>
+    dplyr::count(dplyr::across(tidyselect::starts_with("combo_name"))) |>
     dplyr::mutate(End = "end", .before = "n")
 
   links <- treatment_pathways |>

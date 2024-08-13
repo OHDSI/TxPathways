@@ -109,7 +109,7 @@ getTxHistoryTable <- function(
   tbl <- retrieveTxHistoryTable(connection = connection, tableName = tableName)
 
   # get all combinations of event cohorts
-  eventCohortKey_new <- format_event_combos(eventCohortKey = eventCohortKey)
+  eventCohortKey_new <- event_combo_ids(eventCohortKey = eventCohortKey)
 
   # merge table with format keys
   tbl2 <- tbl |>
@@ -122,11 +122,11 @@ getTxHistoryTable <- function(
       targetCohortKey, by = c("target_cohort_id")
     ) |>
     dplyr::left_join(
-      eventCohortKey_new, by = c("event_cohort_id")
+      eventCohortKey_new, by = c("event_cohort_id" = "mask")
     ) |>
     dplyr::select(
       subject_id, event_seq, target_cohort_id, target_cohort_name, target_start, target_end,
-      event_cohort_id, event_cohort_name, event_start, event_end
+      event_cohort_id, combo_id, combo_name, event_start, event_end
     )
 
   if (dropTable) {
