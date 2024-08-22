@@ -1,7 +1,7 @@
 
 
 
-prep_sankey <- function(th, maxPathLength = 2) {
+prep_sankey <- function(th, maxPathLength = 2, minNumPatterns = 5) {
 
   treatment_pathways <- th |>
     dplyr::filter(event_seq <= maxPathLength) |>
@@ -10,7 +10,8 @@ prep_sankey <- function(th, maxPathLength = 2) {
                        names_prefix = "combo_name",
                        values_from = combo_name) |>
     dplyr::count(dplyr::across(tidyselect::starts_with("combo_name"))) |>
-    dplyr::mutate(End = "end", .before = "n")
+    dplyr::mutate(End = "end", .before = "n") |>
+    dplyr::filter(n >= minNumPatterns)
 
   links <- treatment_pathways |>
     dplyr::mutate(row = dplyr::row_number()) |>
@@ -83,11 +84,12 @@ plot_sankey <- function(sankey) {
 #' Make the sankey diagram for the treatment history
 #' @param th the treatment history table
 #' @param maxPathLength the maximum number of paths in the sequence
+#' @param minNumPatterns the minimum number of patients in a pattern to keep
 #' @return a sankey diagram
 #' @export
-viewSankey <- function(th, maxPathLength = 2) {
+viewSankey <- function(th, maxPathLength = 2, minNumPatterns = 5) {
 
-  dt <- prep_sankey(th = th, maxPathLength = maxPathLength)
+  dt <- prep_sankey(th = th, maxPathLength = maxPathLength, minNumPatterns = minNumPatterns)
   pp <- plot_sankey(dt)
   return(pp)
 }
