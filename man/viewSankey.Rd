@@ -4,12 +4,14 @@
 \alias{viewSankey}
 \title{Make the sankey diagram for the treatment history}
 \usage{
-viewSankey(th, maxPathLength = 2)
+viewSankey(th, maxPathLength = 2, minNumPatterns = 5)
 }
 \arguments{
 \item{th}{the treatment history table}
 
 \item{maxPathLength}{the maximum number of paths in the sequence}
+
+\item{minNumPatterns}{the minimum number of patients in a pattern to keep}
 }
 \value{
 a sankey diagram
