@@ -30,7 +30,7 @@ whoHasSingleTreatment <- function(th) {
   # pick those with same drug throughout
   same_drug_many_times <- th |>
     dplyr::filter(subject_id %in% multi_era_ids) |>
-    dplyr::distinct(subject_id, event_cohort_name) |>
+    dplyr::distinct(subject_id, combo_name) |>
     dplyr::count(subject_id) |>
     dplyr::filter(n == 1) |>
     dplyr::pull(subject_id)
@@ -48,7 +48,7 @@ whoHasMultipleTreatments <- function(th) {
   # find those who have more than one drug across multiple eras
   multi_treatment_ids <- th |>
     dplyr::filter(subject_id %in% multi_era_ids) |>
-    dplyr::distinct(subject_id, event_cohort_name) |>
+    dplyr::distinct(subject_id, combo_name) |>
     dplyr::count(subject_id) |>
     dplyr::filter(n > 1) |>
     dplyr::pull(subject_id)
@@ -61,7 +61,7 @@ whoHasCombinationTreatments <- function(th) {
 
   combo_ids <-  th |>
     dplyr::filter(
-      grepl("\\+", event_cohort_name)
+      grepl("\\+", combo_name)
     ) |>
     dplyr::distinct(subject_id) |>
     dplyr::pull(subject_id)
@@ -77,7 +77,7 @@ whoReturnsToSameTreatment <- function(th) {
   # pick those with same drug throughout
   same_drug_many_times <- th |>
     dplyr::filter(subject_id %in% multi_era_ids) |>
-    dplyr::distinct(subject_id, event_cohort_name) |>
+    dplyr::distinct(subject_id, combo_name) |>
     dplyr::count(subject_id) |>
     dplyr::filter(n == 1) |>
     dplyr::pull(subject_id)

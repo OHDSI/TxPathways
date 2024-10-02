@@ -76,7 +76,7 @@ howLongFirstTx <- function(th) {
       duration = as.integer(duration)
     ) |>
     dplyr::select(
-      subject_id, event_seq, target_start, event_cohort_name, event_start, duration
+      subject_id, event_seq, target_start, combo_name, event_start, duration
     )
 
   # summarize for all
@@ -89,10 +89,10 @@ howLongFirstTx <- function(th) {
 
   # summarize by line
   byLine <- t1 |>
-    dplyr::group_by(event_cohort_name) |>
+    dplyr::group_by(combo_name) |>
     summarize_time() |>
     dplyr::rename(
-      name = event_cohort_name
+      name = combo_name
     ) |>
       dplyr::select(name, n:maxValue)
 
@@ -155,7 +155,7 @@ howLongOnlyTx <- function(th) {
     dplyr::mutate(
       duration = as.integer(event_end - event_start),
       seqGap = glue::glue("{event_seq}"),
-      eventOrder = glue::glue("{event_cohort_name}")
+      eventOrder = glue::glue("{combo_name}")
     )
   tb <- summarize_scenarios_time(t1) |>
     dplyr::filter(
@@ -210,7 +210,7 @@ howLongTxLine <- function(th, line = 1) {
       duration = as.integer(duration)
     ) |>
     dplyr::select(
-      subject_id, event_seq, event_cohort_name, event_start, event_end, duration
+      subject_id, event_seq, combo_name, event_start, event_end, duration
     )
 
   # summarize all lines
@@ -221,10 +221,10 @@ howLongTxLine <- function(th, line = 1) {
       .before = 1
     )
   byLine <- t1 |>
-    dplyr::group_by(event_cohort_name) |>
+    dplyr::group_by(combo_name) |>
     summarize_time() |>
     dplyr::mutate(
-      name = glue::glue("Duration of eras: {event_cohort_name}")
+      name = glue::glue("Duration of eras: {combo_name}")
     ) |>
     dplyr::select(name, n:maxValue)
 
@@ -246,7 +246,7 @@ howLongAreDrugEras <- function(th) {
       duration = as.integer(duration)
     ) |>
     dplyr::select(
-      subject_id, event_seq, event_cohort_name, event_start, event_end, duration
+      subject_id, event_seq, combo_name, event_start, event_end, duration
     )
 
   # summarize all lines
@@ -257,10 +257,10 @@ howLongAreDrugEras <- function(th) {
       .before = 1
     )
   byLine <- t1 |>
-    dplyr::group_by(event_cohort_name) |>
+    dplyr::group_by(combo_name) |>
     summarize_time() |>
     dplyr::mutate(
-      name = glue::glue("Duration of eras: {event_cohort_name}")
+      name = glue::glue("Duration of eras: {combo_name}")
     ) |>
     dplyr::select(name, n:maxValue)
 
@@ -288,11 +288,11 @@ howLongDiscontinuation <- function(th, threshold = 60, days = 365) {
 
   # find which lines had one tx
   byLine <- t1 |>
-    dplyr::group_by(event_cohort_name) |>
+    dplyr::group_by(combo_name) |>
     summarize_time() |>
     dplyr::ungroup() |>
     dplyr::rename(
-      name = event_cohort_name
+      name = combo_name
     )
 
   # of any line who had one tx

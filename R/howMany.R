@@ -73,11 +73,11 @@ howManyOneTx <- function(th) {
 
   # find which lines had one tx
   byLine <- t1 |>
-    dplyr::group_by(event_cohort_name) |>
+    dplyr::group_by(combo_name) |>
     dplyr::count() |>
     dplyr::ungroup() |>
     dplyr::rename(
-      name = event_cohort_name
+      name = combo_name
     )
 
   # of any line who had one tx
@@ -146,7 +146,7 @@ howManyInterruptTx <- function(th, breaks = c(30, 60, 9999)) {
   # get those who repeat and sort into interruption groups
   t2 <- t1 |>
     dplyr::filter(
-      event_cohort_name == prev_drug
+      combo_name == prev_drug
     ) |>
     dplyr::mutate(
       interruption = cut(duration, breaks = breaks)
@@ -245,11 +245,11 @@ howManyDiscontinue <- function(th, threshold = 60, days = 365) {
 
   # find which lines had one tx
   byLine <- t1 |>
-    dplyr::group_by(event_cohort_name) |>
+    dplyr::group_by(combo_name) |>
     dplyr::count() |>
     dplyr::ungroup() |>
     dplyr::rename(
-      name = event_cohort_name
+      name = combo_name
     )
 
   # of any line who had one tx
@@ -316,7 +316,7 @@ howManyWithEachTxInLine <- function(th, txLine) {
   # count persons with each tx in the specified line of treatment
   line <- th |>
     dplyr::filter(event_seq == txLine) |>
-    dplyr::group_by(event_cohort_name) |>
+    dplyr::group_by(combo_name) |>
     dplyr::summarise(n = dplyr::n_distinct(subject_id)) |>
     dplyr::mutate(
       pct = (n / nn) * 100

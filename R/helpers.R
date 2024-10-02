@@ -9,7 +9,7 @@ find_discontinuation <- function(th) {
     # determine what is the event prior to the next row
     dplyr::mutate(
       last_end = dplyr::lag(event_end, order_by = event_seq),
-      prev_drug = dplyr::lag(event_cohort_name, order_by = event_seq)
+      prev_drug = dplyr::lag(combo_name, order_by = event_seq)
     ) |>
     dplyr::ungroup() |>
     dplyr::mutate(
@@ -37,12 +37,12 @@ find_discontinuation <- function(th) {
   t2 <- t1 |>
     dplyr::group_by(subject_id) |>
     dplyr::mutate(
-      next_drug = dplyr::lead(event_cohort_name, order_by = event_seq)
+      next_drug = dplyr::lead(combo_name, order_by = event_seq)
     ) |>
     dplyr::ungroup() |>
     dplyr::mutate(
       drop = dplyr::case_when(
-        event_cohort_name != next_drug ~ 1,
+        combo_name != next_drug ~ 1,
         is.na(next_drug) ~ 0,
         TRUE ~ 0
       )
@@ -89,14 +89,14 @@ lag_events <- function(th) {
     dplyr::mutate(
       last_end = dplyr::lag(event_end, order_by = event_seq),
       prev_event = dplyr::lag(event_seq),
-      prev_drug = dplyr::lag(event_cohort_name, order_by = event_seq)
+      prev_drug = dplyr::lag(combo_name, order_by = event_seq)
     ) |>
     dplyr::ungroup() |>
     # get duration, seq gap and event order between current and prior row
     dplyr::mutate(
       duration = as.integer(event_start - last_end),
       seqGap = glue::glue("{prev_event} - {event_seq}"),
-      eventOrder = glue::glue("{prev_drug} | {event_cohort_name}")
+      eventOrder = glue::glue("{prev_drug} | {combo_name}")
     ) |>
     dplyr::filter(
       !is.na(last_end) # remove the last row
@@ -121,15 +121,15 @@ combo_events <- function(th) {
     ) |>
     dplyr::mutate(
       last_start = dplyr::lag(event_start, order_by = event_seq),
-      last_drug = dplyr::lag(event_cohort_name, order_by = event_seq)
+      last_drug = dplyr::lag(combo_name, order_by = event_seq)
     ) |>
     dplyr::ungroup() |>
     dplyr::mutate(
       duration = as.integer(event_start - last_start),
-      eventOrder = glue::glue("{last_drug} -> {event_cohort_name}")
+      eventOrder = glue::glue("{last_drug} -> {combo_name}")
     ) |>
     dplyr::filter(
-      grepl("\\+", event_cohort_name)
+      grepl("\\+", combo_name)
     )
 
   return(t1)
