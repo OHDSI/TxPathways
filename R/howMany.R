@@ -198,7 +198,7 @@ howManyInterruptTx <- function(th, breaks = c(30, 60, 9999)) {
 #' @param th the treatment history table
 #' @return a tibble summarizing the number of persons and percentage with a treatment combinations
 #' @export
-howManyComboTx <- function(tx) {
+howManyComboTx <- function(th) {
 
   #create denominator
   nn <- get_denominator(th)
