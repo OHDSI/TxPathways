@@ -1,5 +1,6 @@
 .Rproj.user
-extras/
 .RData
 .Rhistory
 errorReportSql.txt
+hidden/
+treatment_history_query.sql

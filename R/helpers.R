@@ -1,136 +1,53 @@
-# Helper functions -------------
+# Private helper: returns the dialect-appropriate string aggregation SQL
+# for building the combo_label column. Called from assemble_treatment_history_sql().
+combo_agg_sql <- function(dbms) {
+    if (dbms %in% c("sql server", "pdw", "synapse")) {
+        agg_sql <- "STRING_AGG(CAST(event_cohort_id AS VARCHAR(255)), '+') WITHIN GROUP (ORDER BY event_cohort_id)"
+    }
 
-# TODO think about what is a discontinuation
-find_discontinuation <- function(th) {
-  t1 <- th |>
-    dplyr::group_by(
-      subject_id
-    ) |>
-    # determine what is the event prior to the next row
-    dplyr::mutate(
-      last_end = dplyr::lag(event_end, order_by = event_seq),
-      prev_drug = dplyr::lag(combo_name, order_by = event_seq)
-    ) |>
-    dplyr::ungroup() |>
-    dplyr::mutate(
-      duration = as.integer(event_start - last_end),
-      discontinue = dplyr::case_when(
-        duration >= 60 ~ 1, # indicate row where discontinuation occurs
-        TRUE ~ NA_integer_ # all other rows NA
-      )
-    ) |>
-    dplyr::group_by(
-      subject_id
-    ) |>
-    # fill NA values below discontinue date to also drop since this is a new era
-    tidyr::fill(discontinue, .direction = "down") |>
-    dplyr::ungroup() |>
-    # replace the remaining NAs with 0 as these are the values to keep
-    tidyr::replace_na(list(discontinue = 0))|>
-    dplyr::filter(
-      # keep values where discontinuation does not occur
-      discontinue == 0
-    ) |>
-    dplyr::select(-c(last_end, prev_drug, discontinue, duration))
+    if (dbms == "postgresql") {
+        agg_sql <- "STRING_AGG(CAST(event_cohort_id AS VARCHAR), '+' ORDER BY event_cohort_id)"
+    }
 
-
-  t2 <- t1 |>
-    dplyr::group_by(subject_id) |>
-    dplyr::mutate(
-      next_drug = dplyr::lead(combo_name, order_by = event_seq)
-    ) |>
-    dplyr::ungroup() |>
-    dplyr::mutate(
-      drop = dplyr::case_when(
-        combo_name != next_drug ~ 1,
-        is.na(next_drug) ~ 0,
-        TRUE ~ 0
-      )
-    ) |>
-    dplyr::filter(
-      drop == 0
-    ) |>
-    dplyr::select(
-      -c(drop, next_drug)
-    )
-
-  t3 <- t2 |>
-    dplyr::group_by(subject_id) |>
-    dplyr::mutate(
-      final_dat = dplyr::last(event_end, order_by = event_seq)
-    ) |>
-    dplyr::ungroup() |>
-    dplyr::filter(
-      event_seq == 1
-    ) |>
-    dplyr::mutate(
-      event_end = final_dat
-    ) |>
-    dplyr::select(
-      -c(final_dat)
-    )
-  return(t3)
-}
-
-lag_events <- function(th) {
-
-  # get persons who only have multiple eras
-  multi_era_ids <- multi_era(th)
-
-  # find persons with mult eras
-  t1 <- th |>
-    dplyr::filter(
-      subject_id %in% multi_era_ids
-    ) |>
-    dplyr::group_by(
-      subject_id
-    ) |>
-    # determine what is the event prior to the next row
-    dplyr::mutate(
-      last_end = dplyr::lag(event_end, order_by = event_seq),
-      prev_event = dplyr::lag(event_seq),
-      prev_drug = dplyr::lag(combo_name, order_by = event_seq)
-    ) |>
-    dplyr::ungroup() |>
-    # get duration, seq gap and event order between current and prior row
-    dplyr::mutate(
-      duration = as.integer(event_start - last_end),
-      seqGap = glue::glue("{prev_event} - {event_seq}"),
-      eventOrder = glue::glue("{prev_drug} | {combo_name}")
-    ) |>
-    dplyr::filter(
-      !is.na(last_end) # remove the last row
-    )
-  return(t1)
-
+    if (dbms %in% c("redshift", "snowflake", "oracle")) {
+        agg_sql <- "LISTAGG(CAST(event_cohort_id AS VARCHAR(255)), '+') WITHIN GROUP (ORDER BY event_cohort_id)"
+    }
+    # lacks testing
+    if (dbms == "bigquery") {
+        agg_sql <- "STRING_AGG(CAST(event_cohort_id AS STRING), '+' ORDER BY event_cohort_id)"
+    }
+    # lacks testing
+    if (dbms == "spark") {
+        agg_sql <- "CONCAT_WS('+', SORT_ARRAY(COLLECT_LIST(CAST(event_cohort_id AS STRING))))" 
+    }
+    return(agg_sql)
+    cli::cli_abort("Unsupported dbms {.val {dbms}} for combo label aggregation.")
 }
 
 
-combo_events <- function(th) {
 
-  # get persons who only have multiple eras
-  combo_ids <- whoHasCombinationTreatments(th)
+# Private helper: returns the dialect-appropriate string aggregation SQL
+# for building the path column from combo_label values. Called from run_pathways().
+path_agg_sql <- function(dbms) {
+    if (dbms %in% c("sql server", "pdw", "synapse")) {
+        agg_sql <- "STRING_AGG(CAST(combo_label AS VARCHAR(255)), ' | ') WITHIN GROUP (ORDER BY event_seq) AS path"
+    }
 
+    if (dbms == "postgresql") {
+        agg_sql <- "STRING_AGG(CAST(combo_label AS VARCHAR), ' | ' ORDER BY event_seq) AS path"
+    }
 
-  t1 <- th |>
-    dplyr::filter(
-      subject_id %in% combo_ids
-    ) |>
-    dplyr::group_by(
-      subject_id
-    ) |>
-    dplyr::mutate(
-      last_start = dplyr::lag(event_start, order_by = event_seq),
-      last_drug = dplyr::lag(combo_name, order_by = event_seq)
-    ) |>
-    dplyr::ungroup() |>
-    dplyr::mutate(
-      duration = as.integer(event_start - last_start),
-      eventOrder = glue::glue("{last_drug} -> {combo_name}")
-    ) |>
-    dplyr::filter(
-      grepl("\\+", combo_name)
-    )
-
-  return(t1)
+    if (dbms %in% c("redshift", "snowflake", "oracle")) {
+        agg_sql <- "LISTAGG(CAST(combo_label AS VARCHAR(255)), ' | ') WITHIN GROUP (ORDER BY event_seq) AS path"
+    }
+    # lacks testing
+    if (dbms == "bigquery") {
+        agg_sql <- "STRING_AGG(CAST(combo_label AS STRING), ' | ' ORDER BY event_seq) AS path"
+    }
+    # lacks testing
+    if (dbms == "spark") {
+        agg_sql <- "CONCAT_WS(' | ', COLLECT_LIST(CAST(combo_label AS STRING))) AS path"
+    }
+    return(agg_sql)
+    cli::cli_abort("Unsupported dbms {.val {dbms}} for path label aggregation.")
 }
