@@ -28,8 +28,10 @@ Imports:
     SqlRender,
     stringr,
     tibble,
-    withr
+    withr,
+    picard
 Suggests:
     networkD3,
     plotly
-Additional_repositories: https://OHDSI.github.io/drat
+Remotes:
+    ohdsi/Picard
