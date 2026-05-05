@@ -1,17 +1,38 @@
-# TxAnalysis Settings Classes ---------------
+# TxAnalysis.R — Treatment Analysis Classes
+# ----------------------------------------------------------------------
 
+# TxAnalysis Settings Classes ------------------------------------------------
+
+#' @title DurationSettings
+#' @description
+#' Placeholder settings class for treatment duration analysis. Currently
+#' requires no configuration; instantiation enables the duration module.
+#' @export
 DurationSettings <- R6::R6Class(
     classname = "DurationSettings",
     public = list(
+        #' @description Initialize a new DurationSettings
         initialize = function() {
             invisible(self)
         }
     )
 )
 
+#' @title PathwaySettings
+#' @description
+#' Settings for treatment pathway frequency analysis.
+#'
+#' @details
+#' Pathways are ranked by frequency. `minFrequency` filters out pathways that
+#' appear fewer than this many times. `maxPathLength` limits the number of
+#' treatment lines considered per pathway string.
+#' @export
 PathwaySettings <- R6::R6Class(
     classname = "PathwaySettings",
     public = list(
+        #' @description Initialize a new PathwaySettings
+        #' @param minFrequency Integer. Minimum frequency to include a pathway in results (default 1).
+        #' @param maxPathLength Integer. Maximum number of treatment lines per pathway string (default 5).
         initialize = function(minFrequency = 1L, maxPathLength = 5L) {
             checkmate::assertIntegerish(minFrequency, len = 1, lower = 1)
             checkmate::assertIntegerish(maxPathLength, len = 1, lower = 1)
@@ -24,11 +45,13 @@ PathwaySettings <- R6::R6Class(
         .maxPathLength = NULL
     ),
     active = list(
+        #' @field minFrequency Integer. Minimum frequency threshold for pathways (read/write).
         minFrequency = function(value) {
             if (missing(value)) return(private$.minFrequency)
             checkmate::assertIntegerish(value, len = 1, lower = 1)
             private$.minFrequency <- as.integer(value)
         },
+        #' @field maxPathLength Integer. Maximum treatment lines per pathway string (read/write).
         maxPathLength = function(value) {
             if (missing(value)) return(private$.maxPathLength)
             checkmate::assertIntegerish(value, len = 1, lower = 1)
@@ -37,13 +60,24 @@ PathwaySettings <- R6::R6Class(
     )
 )
 
+#' @title AdherenceSettings
+#' @description
+#' Settings for treatment adherence (interruption/gap) analysis.
+#' @details
+#' `interruptionGaps` is a vector of day thresholds used to categorize gaps
+#' between treatment lines. `adherenceAnchor` controls whether the gap is
+#' measured from `"event_end"` (the end of the individual event) or
+#' `"line_end"` (the end of the treatment line, which may include combinations).
+#' @export
 AdherenceSettings <- R6::R6Class(
     classname = "AdherenceSettings",
     public = list(
-        initialize = function(
-            interruptionGaps  = c(30L, 60L, 9999L),
-            adherenceAnchor   = "event_end"
-        ) {
+        #' @description Initialize a new AdherenceSettings
+        #' @param interruptionGaps Integer vector. Gap thresholds (days) for
+        #'   categorising interruptions (default `c(30L, 60L, 9999L)`).
+        #' @param adherenceAnchor Character. How to anchor gap measurement:
+        #'   `"event_end"` or `"line_end"` (default `"event_end"`).
+        initialize = function() {
             checkmate::assertIntegerish(interruptionGaps, min.len = 1, lower = 1)
             checkmate::assertChoice(adherenceAnchor, c("event_end", "line_end"))
             private$.interruptionGaps <- as.integer(interruptionGaps)
@@ -55,11 +89,13 @@ AdherenceSettings <- R6::R6Class(
         .adherenceAnchor  = NULL
     ),
     active = list(
+        #' @field interruptionGaps Integer vector. Gap thresholds (days) for categorising interruptions (read/write).
         interruptionGaps = function(value) {
             if (missing(value)) return(private$.interruptionGaps)
             checkmate::assertIntegerish(value, min.len = 1, lower = 1)
             private$.interruptionGaps <- as.integer(value)
         },
+        #' @field adherenceAnchor Character. Gap measurement anchor: `"event_end"` or `"line_end"` (read/write).
         adherenceAnchor = function(value) {
             if (missing(value)) return(private$.adherenceAnchor)
             checkmate::assertChoice(value, c("event_end", "line_end"))
@@ -68,18 +104,32 @@ AdherenceSettings <- R6::R6Class(
     )
 )
 
+#' @title SituationCountSettings
+#' @description
+#' Placeholder settings class for treatment situation count analysis. Currently
+#' requires no configuration; instantiation enables the situation counts module.
+#' @export
 SituationCountSettings <- R6::R6Class(
     classname = "SituationCountSettings",
     public = list(
+        #' @description Initialize a new SituationCountSettings
         initialize = function() {
             invisible(self)
         }
     )
 )
 
+#' @title SituationTimeSettings
+#' @description
+#' Settings for time-to-event analysis of treatment situations.
+#' @details
+#' `maxLine` caps the maximum therapy line index included in the output.
+#' @export
 SituationTimeSettings <- R6::R6Class(
     classname = "SituationTimeSettings",
     public = list(
+        #' @description Initialize a new SituationTimeSettings
+        #' @param maxLine Integer. Maximum therapy line to include in "Time to Therapy Line" output (default 5).
         initialize = function(maxLine = 5L) {
             checkmate::assertIntegerish(maxLine, len = 1, lower = 1)
             private$.maxLine <- as.integer(maxLine)
@@ -89,6 +139,7 @@ SituationTimeSettings <- R6::R6Class(
         .maxLine = NULL
     ),
     active = list(
+        #' @field maxLine Integer. Maximum therapy line index (read/write).
         maxLine = function(value) {
             if (missing(value)) return(private$.maxLine)
             checkmate::assertIntegerish(value, len = 1, lower = 1)
@@ -98,24 +149,40 @@ SituationTimeSettings <- R6::R6Class(
 )
 
 
-# TxAnalysis Primary Class ---------------
+# TxAnalysis Primary Class ---------------------------------------------------
 
+#' @title TxAnalysis
+#' @description
+#' Runs configurable analysis modules against a built treatment history table.
+#'
+#' @details
+#' TxAnalysis is configured with one or more settings objects. Each enabled
+#' module runs a SQL template from `inst/sql/` against the `tx_history` table.
+#' Results are cached and accessible via `get*()` methods or saved to CSV via
+#' `$save()`. Sankey and sunburst visualizations are available for pathway results.
+#'
+#' Use [createTxAnalysis()] for the preferred builder interface.
+#' @export
 TxAnalysis <- R6::R6Class(
     classname = "TxAnalysis",
     public = list(
 
-        initialize = function(
-            txHistory,
-            analysisName,
-            treatmentDuration         = NULL,
-            treatmentPathways          = NULL,
-            treatmentAdherence         = NULL,
-            treatmentSituationsCounts  = NULL,
-            treatmentSituationsTimes   = NULL,
-            stratify                   = NULL,
-            minCellCount               = 5L,
-            customSql                  = NULL
-        ) {
+        #' @description Initialize a new TxAnalysis
+        #'
+        #' @param txHistory A [TxHistory] object. Must have `buildTreatmentHistory()` called
+        #'   before `retrieve()`.
+        #' @param analysisName Character. A label for this analysis run.
+        #' @param treatmentDuration A [DurationSettings] object, or `NULL` to skip this module.
+        #' @param treatmentPathways A [PathwaySettings] object, or `NULL` to skip this module.
+        #' @param treatmentAdherence An [AdherenceSettings] object, or `NULL` to skip this module.
+        #' @param treatmentSituationsCounts A [SituationCountSettings] object, or `NULL` to skip this module.
+        #' @param treatmentSituationsTimes A [SituationTimeSettings] object, or `NULL` to skip this module.
+        #' @param stratify Character vector. Strata to use: `"age"`, `"gender"`, `"indexYear"`.
+        #'   (Note: stratification is configured but results remain unstratified in the current version.)
+        #' @param minCellCount Integer. Minimum cell count for result suppression (default 5).
+        #' @param customSql Named list. Each element is a path to a `.sql` file to execute
+        #'   against the `tx_history` table. Results are stored under `$results$custom_<name>`.
+        initialize = function() {
             checkmate::assertClass(txHistory, classes = "TxHistory")
             private$.txHistory <- txHistory
 
@@ -166,6 +233,12 @@ TxAnalysis <- R6::R6Class(
             private$.results   <- list()
         },
 
+        #' @description Run all configured analysis modules.
+        #' @details Executes all non-NULL module settings against the treatment history
+        #'   table. Results are cached and can be retrieved individually via `get*()` methods.
+        #'   Use `force = TRUE` to re-run if results already exist.
+        #' @param force Logical. If `TRUE`, re-run all modules even if results are cached (default `FALSE`).
+        #' @return Invisible self.
         retrieve = function(force = FALSE) {
             private$check_built()
 
@@ -224,6 +297,9 @@ TxAnalysis <- R6::R6Class(
             invisible(self)
         },
 
+        #' @description Retrieve treatment duration results.
+        #' @param force Logical. If `TRUE`, re-run the module and overwrite cached results (default `FALSE`).
+        #' @return A data frame with duration statistics, or `NULL` if the module is not configured.
         getDuration = function(force = FALSE) {
             private$check_built()
 
@@ -240,6 +316,9 @@ TxAnalysis <- R6::R6Class(
             return(private$.results$duration)
         },
 
+        #' @description Retrieve treatment pathway frequency results.
+        #' @param force Logical. If `TRUE`, re-run the module and overwrite cached results (default `FALSE`).
+        #' @return A data frame with pathway frequencies, or `NULL` if the module is not configured.
         getPathways = function(force = FALSE) {
             private$check_built()
 
@@ -256,6 +335,9 @@ TxAnalysis <- R6::R6Class(
             return(private$.results$pathways)
         },
 
+        #' @description Retrieve treatment adherence (interruption/gap) results.
+        #' @param force Logical. If `TRUE`, re-run the module and overwrite cached results (default `FALSE`).
+        #' @return A data frame with adherence statistics, or `NULL` if the module is not configured.
         getAdherence = function(force = FALSE) {
             private$check_built()
 
@@ -272,6 +354,9 @@ TxAnalysis <- R6::R6Class(
             return(private$.results$adherence)
         },
 
+        #' @description Retrieve treatment situation count results.
+        #' @param force Logical. If `TRUE`, re-run the module and overwrite cached results (default `FALSE`).
+        #' @return A data frame with situation counts, or `NULL` if the module is not configured.
         getSituationCounts = function(force = FALSE) {
             private$check_built()
 
@@ -288,6 +373,9 @@ TxAnalysis <- R6::R6Class(
             return(private$.results$situation_counts)
         },
 
+        #' @description Retrieve treatment situation time-to-event results.
+        #' @param force Logical. If `TRUE`, re-run the module and overwrite cached results (default `FALSE`).
+        #' @return A data frame with situation time statistics, or `NULL` if the module is not configured.
         getSituationTimes = function(force = FALSE) {
             private$check_built()
 
@@ -304,6 +392,9 @@ TxAnalysis <- R6::R6Class(
             return(private$.results$situation_times)
         },
 
+        #' @description Retrieve exit reason results.
+        #' @param force Logical. If `TRUE`, re-run the module and overwrite cached results (default `FALSE`).
+        #' @return A data frame with exit reason counts, or `NULL` if no exit cohorts are configured.
         getExitReasons = function(force = FALSE) {
             private$check_built()
 
@@ -322,6 +413,10 @@ TxAnalysis <- R6::R6Class(
             return(private$.results$exit_reasons)
         },
 
+        #' @description Retrieve results from a custom SQL query by name.
+        #' @param name Character. Name of the custom query (must match a name in the `customSql` list).
+        #' @param force Logical. If `TRUE`, re-run the query and overwrite cached results (default `FALSE`).
+        #' @return A data frame with the query results.
         getCustomSql = function(name, force = FALSE) {
             private$check_built()
 
@@ -339,6 +434,11 @@ TxAnalysis <- R6::R6Class(
             return(private$.results[[cache_key]])
         },
 
+        #' @description Save all retrieved results to CSV files.
+        #' @param outputPath Character. Directory path where results will be saved
+        #'   (default: the project root from `here::here()`). A timestamped subdirectory
+        #'   is created for each run.
+        #' @return Character. The path to the output directory.
         save = function(outputPath = here::here()) {
             if (length(private$.results) == 0) {
                 cli::cli_abort("No results to save. Call {.code $retrieve()} first.")
@@ -364,6 +464,10 @@ TxAnalysis <- R6::R6Class(
             invisible(output_dir)
         },
 
+        #' @description Create an interactive sankey diagram from treatment pathway results.
+        #' @details Requires `networkD3` and `tidyr` packages. The diagram is built from
+        #'   the `PATH` column in the pathway results.
+        #' @return A `sankeyNetwork` htmlwidget.
         sankey = function() {
             if (!requireNamespace("networkD3", quietly = TRUE)) {
                 cli::cli_abort("Package {.pkg networkD3} is required. Install with {.code install.packages('networkD3')}.")
@@ -423,6 +527,10 @@ TxAnalysis <- R6::R6Class(
             )
         },
 
+        #' @description Create an interactive sunburst plot from treatment pathway results.
+        #' @details Requires the `plotly` package. The plot shows hierarchical pathway
+        #'   structure with each level representing a treatment line.
+        #' @return A `plotly` htmlwidget.
         sunburst = function() {
             if (!requireNamespace("plotly", quietly = TRUE)) {
                 cli::cli_abort("Package {.pkg plotly} is required. Install with {.code install.packages('plotly')}.")
@@ -465,6 +573,9 @@ TxAnalysis <- R6::R6Class(
             )
         },
 
+        #' @description Print a formatted summary of the TxAnalysis configuration and status.
+        #' @param ... Additional arguments (not used).
+        #' @return Invisible self.
         print = function(...) {
             cli::cli_rule(left = "TxAnalysis: {private$.analysisName}")
 

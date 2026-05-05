@@ -1,6 +1,6 @@
 /*
  * Treatment Pathway Frequency
- * Parameters: @work_database_schema, @tx_history_table, @path_agg_sql, @min_frequency, @max_path_length
+ * Parameters: work_database_schema, tx_history_table, path_agg_sql, min_frequency, max_path_length
  * Returns: path (e.g. "DrugA | DrugB | DrugA"), freq
  */
 WITH filtered AS (

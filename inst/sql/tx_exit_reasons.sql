@@ -1,6 +1,6 @@
 /*
  * Exit Reason Counts
- * Parameters: @work_database_schema, @tx_history_table, @cohort_table, @exit_cohort_ids, @min_cell_count
+ * Parameters: work_database_schema, tx_history_table, cohort_table, exit_cohort_ids, min_cell_count
  *
  * Joins the last observed treatment event per person to exit cohorts.
  * If an exit cohort event falls within the target observation window, it is

@@ -1,6 +1,6 @@
 /*
  * Treatment Situation Times
- * Parameters: @work_database_schema, @tx_history_table, @min_cell_count, @max_line
+ * Parameters: work_database_schema, tx_history_table, min_cell_count, max_line
  *
  * Returns time-based summary statistics (days) for three metrics:
  *   1. Time to Therapy Line      - days from target_start_date to each event line start

@@ -1,25 +1,35 @@
 Package: TxPathways
 Title: Module to run treatment patterns
-Version: 0.0.4
+Version: 0.1.0
 Authors@R: c(
     person("Martin", "Lavallee", , "martin.lavallee@boehringer-ingelheim.com", role = c("aut", "cre")),
     person("Katy", "Sadowski", , "katy.sadowski@boehringer-ingelheim.com", role = c("aut"))
   )
-Description: Build treatment history using target and event cohorts. Then run analytics off this construction
+Description: Build treatment history using target and event cohorts via a zero-iteration SQL CTE pipeline that runs entirely in the DBMS. Then run analytics (pathways, duration, adherence, situation counts/times, exit reasons) and produce sankey/sunburst visualizations off this construction.
 License: Apache License (>= 2)
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
+Depends:
+    R (>= 4.1.0)
 Imports: 
+    checkmate,
     cli,
     crayon,
-    fs,
-    purrr,
-    rlang,
-    SqlRender,
     DatabaseConnector,
     dplyr,
+    fs,
     glue,
+    here,
+    purrr,
+    R6,
     readr,
-    tibble
+    rlang,
+    SqlRender,
+    stringr,
+    tibble,
+    withr
+Suggests:
+    networkD3,
+    plotly
 Additional_repositories: https://OHDSI.github.io/drat

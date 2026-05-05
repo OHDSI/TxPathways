@@ -1,7 +1,32 @@
-# Primary Classes ----------------
+# TxPathways.R — Core Treatment History Classes
+# ----------------------------------------------------------------------
+
+#' @title TxHistory
+#' @description
+#' Builds a person-level treatment history table in the database.
+#'
+#' @details
+#' TxHistory takes a set of target, event, and (optionally) exit cohorts along
+#' with configuration for era collapsing, combination detection, follow-up windows,
+#' and pathway filtering. Calling `$buildTreatmentHistory()` assembles and executes
+#' the SQL that creates the `tx_history` table in the database.
+#'
+#' Use [createTreatmentHistorySettings()] for the preferred builder interface.
+#' @export
 TxHistory <- R6::R6Class(
     classname = "TxHistory",
     public = list(
+        #' @description Initialize a new TxHistory
+        #'
+        #' @param txCohorts A data frame with columns `cohortId`, `cohortLabel`, and `cohortType`.
+        #'   Exactly one row must have `cohortType = "target"`.
+        #' @param followUpWindow A [FollowUpWindow] object.
+        #' @param eraCollapseSettings An [EraCollapseSettings] object.
+        #' @param combinationTreatmentSettings A [CombinationTreatmentSettings] object.
+        #' @param pathwayOptions A [PathwayOptions] object.
+        #' @param executionSettings An `ExecutionSettings` object (from the Picard package).
+        #' @param txHistoryTableName Character. Name of the output treatment history table
+        #'   in the database (default `"tx_history"`).
         initialize = function(txCohorts,
                               followUpWindow,
                               eraCollapseSettings,
@@ -30,6 +55,12 @@ TxHistory <- R6::R6Class(
             private$.txHistoryTable <- txHistoryTableName
         },
 
+        #' @description Build the treatment history table in the database.
+        #' @details Assembles the SQL pipeline from the class settings, executes it
+        #'   against the database connection in `executionSettings`, and prints a
+        #'   summary of the built table (row counts, pathway length distribution, etc.).
+        #'   The connection is automatically opened and closed.
+        #' @return Invisible self.
         buildTreatmentHistory = function() {
             # get connection from execution settings and ensure it gets closed when function exits
             settings <- private$.executionSettings
@@ -72,6 +103,8 @@ TxHistory <- R6::R6Class(
 
         },
 
+        #' @description Print a formatted summary of all treatment history settings.
+        #' @return Invisible self.
         printAnalysis = function() {
             cli::cli_rule(left = "Treatment History Settings")
 
@@ -107,6 +140,10 @@ TxHistory <- R6::R6Class(
             cli::cli_rule()
         },
 
+        #' @description Save the assembled SQL query to a file.
+        #' @param savePath Character. Directory path where the SQL file will be saved
+        #'   (default: the project root from `here::here()`).
+        #' @return Invisible self.
         saveQuery = function(savePath = here::here()) {
             
             file <- fs::path(savePath, "treatment_history_query.sql")
@@ -115,6 +152,10 @@ TxHistory <- R6::R6Class(
             cli::cli_alert_success("SQL query saved to {.file {file}}")
         },
 
+        #' @description Retrieve build summary statistics.
+        #' @return A list with elements `summary` (overall table stats) and `pathways`
+        #'   (pathway length distribution), or `NULL` if `buildTreatmentHistory()` has
+        #'   not been called.
         getSummary = function() {
             if (is.null(private$.lastSummary)) {
                 cli::cli_alert_info("No summary available. Call {.code build()} first.")
@@ -123,6 +164,8 @@ TxHistory <- R6::R6Class(
             return(private$.lastSummary)
         },
 
+        #' @description Check whether the treatment history table exists in the database.
+        #' @return `TRUE` if the table exists and is queryable, `FALSE` otherwise.
         hasBeenBuilt = function() {
             settings <- private$.executionSettings
             settings$connect()
@@ -280,6 +323,7 @@ TxHistory <- R6::R6Class(
         }
     ),
     active = list(
+        #' @field txCohorts A data frame with cohort definitions (read/write).
         txCohorts = function(value) {
             if (missing(value)) {
                 return(private$.txCohorts)
@@ -290,6 +334,7 @@ TxHistory <- R6::R6Class(
             checkmate::assertTrue(sum(value$cohortType == "target") == 1)
             private$.txCohorts <- value
         },
+        #' @field followUpWindow A [FollowUpWindow] object (read/write).
         followUpWindow = function(value) {
             if (missing(value)) {
                 return(private$.followUpWindow)
@@ -297,6 +342,7 @@ TxHistory <- R6::R6Class(
             checkmate::assertClass(value, classes = "FollowUpWindow")
             private$.followUpWindow <- value
         },
+        #' @field eraCollapseSettings An [EraCollapseSettings] object (read/write).
         eraCollapseSettings = function(value) {
             if (missing(value)) {
                 return(private$.eraCollapseSettings)
@@ -304,6 +350,7 @@ TxHistory <- R6::R6Class(
             checkmate::assertClass(value, classes = "EraCollapseSettings")
             private$.eraCollapseSettings <- value
         },
+        #' @field combinationTreatmentSettings A [CombinationTreatmentSettings] object (read/write).
         combinationTreatmentSettings = function(value) {
             if (missing(value)) {
                 return(private$.combinationTreatmentSettings)
@@ -311,6 +358,7 @@ TxHistory <- R6::R6Class(
             checkmate::assertClass(value, classes = "CombinationTreatmentSettings")
             private$.combinationTreatmentSettings <- value
         },
+        #' @field pathwayOptions A [PathwayOptions] object (read/write).
         pathwayOptions = function(value) {
             if (missing(value)) {
                 return(private$.pathwayOptions)
@@ -318,6 +366,7 @@ TxHistory <- R6::R6Class(
             checkmate::assertClass(value, classes = "PathwayOptions")
             private$.pathwayOptions <- value
         },
+        #' @field txHistoryTableName Character. Name of the output treatment history table (read/write).
         txHistoryTableName = function(value) {
             if (missing(value)) {
                 return(private$.txHistoryTable)
@@ -325,6 +374,7 @@ TxHistory <- R6::R6Class(
             checkmate::assertString(value)
             private$.txHistoryTable <- value
         },
+        #' @field executionSettings An `ExecutionSettings` object (read/write).
         executionSettings = function(value) {
             if (missing(value)) {
                 return(private$.executionSettings)
@@ -335,11 +385,25 @@ TxHistory <- R6::R6Class(
     )
 )
 
-# TxHistory Support Classes ---------------
+# TxHistory Support Classes -------------------------------------------------
 
+#' @title CombinationTreatmentSettings
+#' @description
+#' Settings controlling how drug combinations are detected and post-processed.
+#'
+#' @details
+#' Two drugs are considered a combination when their eras overlap by at least
+#' `combinationWindow` days. After a combination segment is identified, it must
+#' last at least `minPostCombinationDuration` days to be retained.
+#' @export
 CombinationTreatmentSettings <- R6::R6Class(
     classname = "CombinationTreatmentSettings",
     public = list(
+        #' @description Initialize a new CombinationTreatmentSettings
+        #' @param minPostCombinationDuration Integer. Minimum days a combination segment
+        #'   must persist to be retained (default 30).
+        #' @param combinationWindow Integer. Minimum overlap (days) for two events to
+        #'   be classified as a combination (default 30).
         initialize = function(minPostCombinationDuration = 30, combinationWindow = 30) {
             checkmate::assertIntegerish(minPostCombinationDuration, len = 1, lower = 0)
             private$.minPostCombinationDuration <- minPostCombinationDuration
@@ -352,6 +416,7 @@ CombinationTreatmentSettings <- R6::R6Class(
         .combinationWindow = NULL
     ),
     active = list(
+        #' @field minPostCombinationDuration Integer. Minimum days a combination segment must persist (read/write).
         minPostCombinationDuration = function(value) {
             if (missing(value)) {
                 return(private$.minPostCombinationDuration)
@@ -359,6 +424,7 @@ CombinationTreatmentSettings <- R6::R6Class(
             checkmate::assertIntegerish(value, len = 1, lower = 0)
             private$.minPostCombinationDuration <- value
         },
+        #' @field combinationWindow Integer. Minimum overlap (days) for combination detection (read/write).
         combinationWindow = function(value) {
             if (missing(value)) {
                 return(private$.combinationWindow)
@@ -369,9 +435,23 @@ CombinationTreatmentSettings <- R6::R6Class(
     )
 )
 
+#' @title EraCollapseSettings
+#' @description
+#' Settings for merging adjacent same-drug eras and filtering short eras.
+#'
+#' @details
+#' Two same-drug eras separated by `eraCollapseSize` days or fewer are merged
+#' into a single continuous era. After collapse, eras shorter than `minEraDuration`
+#' days are dropped entirely.
+#' @export
 EraCollapseSettings <- R6::R6Class(
     classname = "EraCollapseSettings",
     public = list(
+        #' @description Initialize a new EraCollapseSettings
+        #' @param eraCollapseSize Integer. Maximum gap (days) between same-drug eras
+        #'   that should be merged (default 30).
+        #' @param minEraDuration Integer. Collapsed eras shorter than this (days)
+        #'   are dropped (default 0).
         initialize = function(eraCollapseSize= 30, minEraDuration = 0) {
             checkmate::assertIntegerish(eraCollapseSize, len = 1, lower = 0)
             private$.eraCollapseSize <- eraCollapseSize
@@ -384,6 +464,7 @@ EraCollapseSettings <- R6::R6Class(
         .minEraDuration = NULL
     ),
     active = list(
+        #' @field eraCollapseSize Integer. Maximum gap (days) for merging same-drug eras (read/write).
         eraCollapseSize = function(value) {
             if (missing(value)) {
                 return(private$.eraCollapseSize)
@@ -391,6 +472,7 @@ EraCollapseSettings <- R6::R6Class(
             checkmate::assertIntegerish(value, len = 1, lower = 0)
             private$.eraCollapseSize <- value
         },
+        #' @field minEraDuration Integer. Minimum duration (days) to retain a collapsed era (read/write).
         minEraDuration = function(value) {
             if (missing(value)) {
                 return(private$.minEraDuration)
@@ -401,9 +483,23 @@ EraCollapseSettings <- R6::R6Class(
     )
 )
 
+#' @title PathwayOptions
+#' @description
+#' Options controlling how the final treatment pathway is assembled.
+#'
+#' @details
+#' `maxPathwayLength` caps the number of treatment lines per person. `filterTreatments`
+#' determines which lines are retained: `"All"` keeps every line, `"First"` keeps only
+#' the first occurrence of each drug, and `"Changes"` removes consecutive repeats of
+#' the same drug.
+#' @export
 PathwayOptions <- R6::R6Class(
     classname = "PathwayOptions",
     public = list(
+        #' @description Initialize a new PathwayOptions
+        #' @param maxPathwayLength Integer. Maximum treatment lines per person (default 5).
+        #' @param filterTreatments Character. Which lines to retain: `"First"`, `"All"`,
+        #'   or `"Changes"` (default `"First"`).
         initialize = function(maxPathwayLength = 5,
                               filterTreatments = "First") {
             checkmate::assertIntegerish(maxPathwayLength, len = 1, lower = 1)
@@ -417,6 +513,7 @@ PathwayOptions <- R6::R6Class(
         .filterTreatments = NULL
     ),
     active = list(
+        #' @field maxPathwayLength Integer. Maximum treatment lines per person (read/write).
         maxPathwayLength = function(value) {
             if (missing(value)) {
                 return(private$.maxPathwayLength)
@@ -424,6 +521,7 @@ PathwayOptions <- R6::R6Class(
             checkmate::assertIntegerish(value, len = 1, lower = 1)
             private$.maxPathwayLength <- value
         },
+        #' @field filterTreatments Character. Treatment filtering mode: `"First"`, `"All"`, or `"Changes"` (read/write).
         filterTreatments = function(value) {
             if (missing(value)) {
                 return(private$.filterTreatments)
@@ -434,6 +532,16 @@ PathwayOptions <- R6::R6Class(
     )
 )
 
+#' @title FollowUpWindow
+#' @description
+#' Defines the effective observation window relative to each person's target
+#' cohort start and end dates.
+#'
+#' @details
+#' The follow-up window is anchored to either `cohort_start_date` or
+#' `cohort_end_date` with an optional day offset. Events outside this window
+#' are excluded from the treatment history.
+#' @export
 FollowUpWindow <- R6::R6Class(
   classname = "FollowUpWindow",
   private = list(
@@ -443,6 +551,13 @@ FollowUpWindow <- R6::R6Class(
     .endDays = NULL
   ),
   public = list(
+    #' @description Initialize a new FollowUpWindow
+    #' @param startAnchor Character. Anchor for the start offset: `"cohort_start_date"`
+    #'   or `"cohort_end_date"` (default `"cohort_start_date"`).
+    #' @param startDays Integer. Days offset from the start anchor (default 0).
+    #' @param endAnchor Character. Anchor for the end offset: `"cohort_start_date"`
+    #'   or `"cohort_end_date"` (default `"cohort_end_date"`).
+    #' @param endDays Integer. Days offset from the end anchor (default 0).
     initialize = function(
       startAnchor = "cohort_start_date",
       startDays = 0,
@@ -465,6 +580,7 @@ FollowUpWindow <- R6::R6Class(
 
   ),
   active = list(
+    #' @field startAnchor Character. Start date anchor (read/write).
     startAnchor = function(value) {
       if (missing(value)) {
         return(private$.startAnchor)
@@ -472,6 +588,7 @@ FollowUpWindow <- R6::R6Class(
       checkmate::assert_choice(x = value, choices = c("start_date", "end_date"))
       private$.startAnchor <- value
     },
+    #' @field endAnchor Character. End date anchor (read/write).
     endAnchor = function(value) {
       if (missing(value)) {
         return(private$.endAnchor)
@@ -479,6 +596,7 @@ FollowUpWindow <- R6::R6Class(
       checkmate::assert_choice(x = value, choices = c("start_date", "end_date"))
       private$.endAnchor <- value
     },
+    #' @field startDays Integer. Start date offset in days (read/write).
     startDays = function(value) {
       if (missing(value)) {
         return(private$.startDays)
@@ -486,6 +604,7 @@ FollowUpWindow <- R6::R6Class(
       checkmate::assert_integerish(x = value, len = 1)
       private$.startDays <- value
     },
+    #' @field endDays Integer. End date offset in days (read/write).
     endDays = function(value) {
       if (missing(value)) {
         return(private$.endDays)

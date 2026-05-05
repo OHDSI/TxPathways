@@ -1,6 +1,6 @@
 /*
  * Treatment Situation Counts
- * Parameters: @work_database_schema, @tx_history_table, @min_cell_count
+ * Parameters: work_database_schema, tx_history_table, min_cell_count
  *
  * Returns a summary count table of treatment situations per (person, target index):
  *   - Total Subjects

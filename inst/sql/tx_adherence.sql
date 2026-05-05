@@ -1,6 +1,6 @@
 /*
  * Treatment Adherence - Transition Classification
- * Parameters: @work_database_schema, @tx_history_table, @min_cell_count
+ * Parameters: work_database_schema, tx_history_table, min_cell_count
  *
  * Classifies each treatment event transition per person as:
  *   Interrupted  - same combo_label appears again after a gap

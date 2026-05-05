@@ -1,6 +1,6 @@
 /*
  * Treatment Duration Summary
- * Parameters: @work_database_schema, @tx_history_table, @min_cell_count
+ * Parameters: work_database_schema, tx_history_table, min_cell_count
  * Groupings: Overall | By Line (event_seq) | By Event (combo_label) | By Line and Event
  * Output: grouping_type, combo_label, event_seq, subject_count, mean, sd, min, p10, p25, median, p75, p90, max
  * Note: event_seq = -1 indicates 'not applicable' (aggregated across all lines)
