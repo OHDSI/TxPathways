@@ -24,71 +24,82 @@ To install `TxPathways`, follow these steps:
 
 ## Example
 
-This is a basic example of the availabe functionality in `TxPathways`:
+This is a basic example of the available functionality in `TxPathways`:
 
 ``` r
 library(TxPathways)
+library(picard)
 
-
+# Set up connection details
 connectionDetails <- DatabaseConnector::createConnectionDetails(
-  dbms = "redshift",
-  connectionString = "<jdbc_string>",
+  dbms = "snowflake",
+  connectionString = "<connection_string>",
   user = "<user>",
   password = "<password>"
 )
-connection <- DatabaseConnector::connect(connectionDetails)
 
-# call atlas results 
-workDatabaseSchema <- "<scratch_johndoe>" # your scratch schema, or the ATLAS results schema
-cohortTable <- "cohort"
-targetCohortId <- 1
-eventCohortIds <- c(2, 3)
-
-# Make the treatment history table
-createTxHistoryTable(
-  connection = connection,
-  workDatabaseSchema = workDatabaseSchema,
-  cohortTable = cohortTable,
-  targetCohortId = targetCohortId,
-  eventCohortIds = eventCohortIds
+# Create execution settings with database and schema information
+settings <- createExecutionSettings(
+    connectionDetails = connectionDetails,
+    cdmDatabaseSchema = "cdm_schema",
+    workDatabaseSchema = "work_schema",
+    cohortTable = "cohort",
+    tempEmulationSchema = "temp_schema",
+    databaseName = "database_name"
 )
 
-targetCohortKey <- tibble::tibble(
-  target_cohort_id = 1,
-  target_cohort_name = "cohort"
+# Create treatment history settings
+th <- createTreatmentHistorySettings(
+    txCohorts = createTxCohorts(
+        cohortIds = c(1, 2, 3),
+        cohortLabels = c("treatment_a", "treatment_b", "target_condition"),
+        cohortTypes = c("event", "event", "target")
+    ),
+    followUpWindow = createFollowUpWindow(
+        startAnchor = "cohort_start_date",
+        startDays = 0,
+        endAnchor = "cohort_end_date",
+        endDays = 0
+    ),
+    eraCollapseSettings = createEraCollapseSettings(
+        minEraDuration = 0,
+        eraCollapseSize = 30
+    ),
+    combinationTreatmentSettings = createCombinationTreatmentSettings(
+        minPostCombinationDuration = 30,
+        combinationWindow = 30
+    ),
+    pathwayOptions = createPathwayOptions(
+        maxPathwayLength = 5,
+        filterTreatments = "All"
+    ),
+    executionSettings = settings
 )
 
-eventCohortKey <- tibble::tibble(
-  event_cohort_id = c(2, 3),
-  event_cohort_name = c("drugA", "drugB")
-)
+# View the analysis configuration
+th$printAnalysis()
 
+# Generate and save the SQL query
+th$saveQuery()
 
-th <- getTxHistoryTable(connection = connection,
-                        targetCohortKey = targetCohortKey,
-                        eventCohortKey = eventCohortKey)
+# Build the treatment history table
+th$buildTreatmentHistory()
 
-
-viewSankey(th, maxPathLength = 2)
-
-# check how many of each event
-
-howManyHaveSingleTreatment(th)
-howManyHaveMultipleTreatments(th)
-howManyHaveComboTreatments(th)
-
-# check denominator - currently all
-howManySwitchedFromAtoB(th, depth = 2)
-# check denominator - currently all
-howManyHadInterruption(th, seqGap = '1-2', interruption = "30-60")
-howManyHadInterruption(th, seqGap = '1-2', interruption = "60-9999")
-howManyStoppedBefore(th, days = 365)
-
-
-# check how long til event
-howLongUntilFirstTreatment(th)
-howLongUntilNextTreatment(th, seqGap = '1-2')
-howLongAreDrugEras(th)
 
 ```
 
+After the treatment history table is built in the dbms you can run various analyses to build sankey, sunburst, or other bits of information. 
+
+
+``` r
+txAnalysis <- createTxAnalysis(
+  txHistory,
+    analysisName,
+    treatmentDuration         = createDurationSettings(),
+    treatmentPathways          = createPathwaySettings(),
+    treatmentAdherence         = createAdherenceSettings(),
+    minCellCount               = 5L
+)
+jj <-txAnalysis$retrieve()
+
+```
